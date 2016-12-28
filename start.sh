@@ -213,6 +213,8 @@ function setupUFW () {
 		else
 			fail "UFW: Default could not be set, all incoming traffic is allowed"
 		fi
+	else
+		success "UFW: Default is already set to deny all incoming traffic"
 	fi
 
 	if [[ $(sudo ufw status verbose | grep "allow (outgoing)") == "" ]]; then
@@ -221,6 +223,8 @@ function setupUFW () {
 		else
 			fail "UFW: Default could not be set, all outgoing traffic is being denied"
 		fi
+	else
+		success "UFW: Default is already set to allow all outgoing traffic"
 	fi
 }
 
@@ -239,13 +243,15 @@ function setupFail2Ban () {
 			echo "bantime = 7200"
 		} >> /etc/fail2ban/jail.local
 		success "Fail2Ban: Local jail created"
+	else
+		success "Fail2Ban: Local jail already created"
 	fi
 
 	sudo service fail2ban restart
 }
 
 function setupSharedMemory () {
-	info "Shared Memory: Checking hardened status"
+	info "Shared Memory: Checking security status"
 	if [[ $(grep "/run/shm" /etc/fstab) == "" ]]; then
 		info "Shared Memory: Memory is currently unsecured, securing now"
 		# Note: This only is works in Ubuntu 12.10 or later - For earlier Ubuntu versions replace /run/shm with /dev/shm
@@ -258,7 +264,7 @@ function setupSharedMemory () {
 
 function setupSuPrivileges () {
 	# Checks for admin group existence
-	info "Su Privileges: Checking security status now"
+	info "Su Privileges: Checking security status"
 	if [[ $(grep "admin" /etc/group) == "" ]]; then
 		info "Su Privileges: Admin group has not been created, creating now"
 		sudo groupadd admin
@@ -338,6 +344,9 @@ function setupNetworkHarden () {
 			echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: ICMP broadcast requests are now ignored"
+	else
+		success "Network: ICMP broadcast requests are already ignored"
 	fi
 
 	if [[ $(grep "net.ipv4.conf.default.accept_source_route" "/etc/sysctl.conf") == "" ]]; then
@@ -347,6 +356,9 @@ function setupNetworkHarden () {
 			echo "net.ipv6.conf.default.accept_source_route = 0"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: Source packet routing is now disabled"	
+	else
+		success "Network: Source packet routing is already disabled"
 	fi
 
 	if [[ $(grep "net.ipv4.conf.default.send_redirects" "/etc/sysctl.conf") == "" ]]; then
@@ -355,6 +367,9 @@ function setupNetworkHarden () {
 			echo "net.ipv4.conf.default.send_redirects = 0"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: Send redirects are now ignored"
+	else
+		success "Network: Send redirects are already ignored"
 	fi
 
 	if [[ $(grep "net.ipv4.tcp_max_syn_backlog" "/etc/sysctl.conf") == "" ]]; then
@@ -365,6 +380,9 @@ function setupNetworkHarden () {
 			echo "net.ipv4.tcp_syn_retries = 5"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: SYN flood attacks are now rate-limited"
+	else
+		success "Network: SYN flood attacks are already rate-limited"
 	fi
 
 	if [[ $(grep "net.ipv4.icmp_ignore_bogus_error_responses" "/etc/sysctl.conf") == "" ]]; then
@@ -373,6 +391,9 @@ function setupNetworkHarden () {
 			echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: Martian requests are now logged"
+	else
+		success "Network: Martian requests are already logged"
 	fi
 
 	if [[ $(grep "net.ipv4.conf.default.accept_redirects" "/etc/sysctl.conf") == "" ]]; then
@@ -382,6 +403,9 @@ function setupNetworkHarden () {
 			echo "net.ipv6.conf.default.accept_redirects = 0"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: ICMP redirects are now ignored"
+	else
+		success "Network: ICMP redirects are already ignored"
 	fi
 
 	if [[ $(grep "net.ipv4.icmp_echo_ignore_all" "/etc/sysctl.conf") == "" ]]; then
@@ -389,6 +413,9 @@ function setupNetworkHarden () {
 			echo "# Ignore Directed pings"
 			echo "net.ipv4.icmp_echo_ignore_all = 1"
 		} | sudo tee --append /etc/sysctl.conf
+		success "Network: Directeed pings are now ignored"
+	else
+		success "Network: Directed pings are already ignored"
 	fi
 
 	# Reloads sysctl with the latest changes if applicable

@@ -60,12 +60,12 @@ function checkAndSetAutoSettings () {
 }
 
 function checkAndSetNetworkSettings () {
-    change_substring "$1" "$2" /etc/sysctl.conf
+    change_substring "$1" "$2" /etc/sysctl.conf &> /dev/null
 }
 
 function checkAndAppendSettings () {
 	if [[ $(grep "$1" "/etc/apt/apt.conf.d/20auto-upgrades") == "" ]]; then
-		echo "$1" | sudo tee --append /etc/apt/apt.conf.d/20auto-upgrades
+		echo "$1" | sudo tee --append /etc/apt/apt.conf.d/20auto-upgrades &> /dev/null
 	fi
 }
 

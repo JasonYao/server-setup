@@ -145,6 +145,10 @@ function setupSSH
 	change_substring "PermitRootLogin yes" "PermitRootLogin no" /etc/ssh/sshd_config
 	success "SSHD: SSH root login is denied"
 
+	# Disallows tunneled plaintext passwords
+	change_substring "PasswordAuthentication yes" "PasswordAuthentication no" /etc/ssh/sshd_config
+	success "SSHD: SSH tunneled plaintext passwords disabled"
+
 	# Allows ssh access for the user
 	if [[ ! $(grep "AllowUsers $username" "/etc/ssh/sshd_config") ]]; then
 		if [[ $(grep "AllowUsers" "/etc/ssh/sshd_config") == "" ]]; then

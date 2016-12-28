@@ -148,11 +148,12 @@ function setupSSH
 	# Allows ssh access for the user
 	if [[ ! $(grep "AllowUsers $username" "/etc/ssh/sshd_config") ]]; then
 		if [[ $(grep "AllowUsers" "/etc/ssh/sshd_config") == "" ]]; then
+			echo "" | sudo tee --append /etc/ssh/sshd_config > /dev/null # Appends a newline first in case original file isn't newline-terminated
 			echo "AllowUsers $username" | sudo tee --append /etc/ssh/sshd_config > /dev/null
 		else
 			change_substring "AllowUsers" "AllowUsers $username" /etc/ssh/sshd_config
 		fi
-			success "SSHD: $username has been added to the SSH access list"
+		success "SSHD: $username has been added to the SSH access list"
 	else
 		success "SSHD: $username has already been added to the SSH access list"
 	fi

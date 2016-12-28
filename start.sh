@@ -60,7 +60,7 @@ function checkAndSetAutoSettings () {
 }
 
 function checkAndSetNetworkSettings () {
-    change_substring "$1" "$2" /etc/sysctl.conf &> /dev/null
+    change_substring "$1" "$2" /etc/sysctl.conf
 }
 
 function checkAndAppendSettings () {
@@ -343,7 +343,7 @@ function setupNetworkHarden () {
 			echo "# Ignore ICMP broadcast requests"
 			echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: ICMP broadcast requests are now ignored"
 	else
 		success "Network: ICMP broadcast requests are already ignored"
@@ -355,7 +355,7 @@ function setupNetworkHarden () {
 			echo "net.ipv4.conf.default.accept_source_route = 0"
 			echo "net.ipv6.conf.default.accept_source_route = 0"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: Source packet routing is now disabled"	
 	else
 		success "Network: Source packet routing is already disabled"
@@ -366,7 +366,7 @@ function setupNetworkHarden () {
 			echo "# Ignore send redirects"
 			echo "net.ipv4.conf.default.send_redirects = 0"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: Send redirects are now ignored"
 	else
 		success "Network: Send redirects are already ignored"
@@ -379,7 +379,7 @@ function setupNetworkHarden () {
 			echo "net.ipv4.tcp_synack_retries = 2"
 			echo "net.ipv4.tcp_syn_retries = 5"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: SYN flood attacks are now rate-limited"
 	else
 		success "Network: SYN flood attacks are already rate-limited"
@@ -390,7 +390,7 @@ function setupNetworkHarden () {
 			echo "# Log Martians"
 			echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: Martian requests are now logged"
 	else
 		success "Network: Martian requests are already logged"
@@ -402,7 +402,7 @@ function setupNetworkHarden () {
 			echo "net.ipv4.conf.default.accept_redirects = 0"
 			echo "net.ipv6.conf.default.accept_redirects = 0"
 			echo ""
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: ICMP redirects are now ignored"
 	else
 		success "Network: ICMP redirects are already ignored"
@@ -412,7 +412,7 @@ function setupNetworkHarden () {
 		{
 			echo "# Ignore Directed pings"
 			echo "net.ipv4.icmp_echo_ignore_all = 1"
-		} | sudo tee --append /etc/sysctl.conf
+		} | sudo tee --append /etc/sysctl.conf &> /dev/null
 		success "Network: Directeed pings are now ignored"
 	else
 		success "Network: Directed pings are already ignored"

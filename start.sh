@@ -34,8 +34,7 @@ function fail () {
 	exit 1
 }
 
-function checkAndInstallPackage ()
-{
+function checkAndInstallPackage () {
 	info "Checking for $1"
 	if dpkg -s "$1" > /dev/null 2>&1 ; then
 		success "$1 is already installed"
@@ -49,33 +48,28 @@ function checkAndInstallPackage ()
 	fi
 }
 
-function change_substring ()
-{
+function change_substring () {
 	search=$1
 	replace=$2
 	file=$3
 	sudo sed -i "s/${search}/${replace}/g" "${file}"
 }
 
-function checkAndSetAutoSettings ()
-{
+function checkAndSetAutoSettings () {
 	change_substring "$1" "$2" /etc/apt/apt.conf.d/50unattended-upgrades
 }
 
-function checkAndSetNetworkSettings ()
-{
+function checkAndSetNetworkSettings () {
     change_substring "$1" "$2" /etc/sysctl.conf
 }
 
-function checkAndAppendSettings ()
-{
+function checkAndAppendSettings () {
 	if [[ $(grep "$1" "/etc/apt/apt.conf.d/20auto-upgrades") == "" ]]; then
 		echo "$1" | sudo tee --append /etc/apt/apt.conf.d/20auto-upgrades
 	fi
 }
 
-function updateAndUpgrade
-{
+function updateAndUpgrade () {
 	# Updates & upgrades
 	info "Updating packages"
 	if sudo apt-get update -y > /dev/null ; then
@@ -92,8 +86,7 @@ function updateAndUpgrade
 	fi
 }
 
-function autoRemove
-{
+function autoRemove () {
 	# Auto removes any unnecessary packages
 	info "Auto removing any unnecessary packages"
 	if sudo apt-get autoremove -y > /dev/null ; then
@@ -103,8 +96,7 @@ function autoRemove
 	fi
 }
 
-function setupUserBaseline
-{
+function setupUserBaseline () {
 	# Adds a new user if it doesn't exist
 	if [[ $(cut -d: -f1 < /etc/passwd | grep "$username") == "" ]]; then
 		# Checks for input password for user, otherwise goes with default
@@ -128,8 +120,7 @@ function setupUserBaseline
 	fi
 }
 
-function setupSSH
-{
+function setupSSH () {
 	# Secures SSH daemon
 	# Makes a backup
 	if [[ ! -d "/etc/ssh/sshd_config.backup" ]]; then
@@ -166,8 +157,7 @@ function setupSSH
 	sudo service ssh restart
 }
 
-function setupAutoUpdate
-{
+function setupAutoUpdate () {
 	# Sets up automatic updating
 	checkAndInstallPackage unattended-upgrades
 	checkAndInstallPackage update-notifier-common
@@ -181,14 +171,13 @@ function setupAutoUpdate
 	checkAndAppendSettings "APT::Periodic::Unattended-Upgrade \"1\";"
 	checkAndAppendSettings "APT::Periodic::AutocleanInterval \"7\";"
 
-	checkAndSetAutoSettings "\/\/   \"\${distro_id}:\${distro_codename}-updates\";" "   \"\${distro_id}:\${distro_codename}-updates\";"
+	checkAndSetAutoSettings "\/\/	\"\${distro_id}:\${distro_codename}-updates\";" "		\"\${distro_id}:\${distro_codename}-updates\";"
 	checkAndSetAutoSettings "\/\/Unattended-Upgrade::Automatic-Reboot \"false\";" "Unattended-Upgrade::Automatic-Reboot \"true\";"
 	checkAndSetAutoSettings "\/\/Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";" "Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";"
 	success "Auto Updates: All configurations have been set"
 }
 
-function setupUFW
-{
+function setupUFW () {
 	# Sets up ufw (firewall)
 	checkAndInstallPackage ufw
 
@@ -235,8 +224,7 @@ function setupUFW
 	fi
 }
 
-function setupFail2Ban
-{
+function setupFail2Ban () {
 	checkAndInstallPackage fail2ban				# Used in ip-banning on both nginx and ufw
 
 	# Creates a local jail to use ufw
@@ -256,7 +244,7 @@ function setupFail2Ban
 	sudo service fail2ban restart
 }
 
-function setupSharedMemory {
+function setupSharedMemory () {
 	info "Shared Memory: Checking hardened status"
 	if [[ $(grep "/run/shm" /etc/fstab) == "" ]]; then
 		info "Shared Memory: Memory is currently unsecured, securing now"
@@ -268,7 +256,7 @@ function setupSharedMemory {
 	fi
 }
 
-function setupSuPrivileges {
+function setupSuPrivileges () {
 	# Checks for admin group existence
 	info "Su Privileges: Checking security status now"
 	if [[ $(grep "admin" /etc/group) == "" ]]; then
@@ -299,7 +287,7 @@ function setupSuPrivileges {
 }
 
 # Helper function
-function setupNetworkHarden {
+function setupNetworkHarden () {
 	# Backs up
 	if [[ ! -f /etc/sysctl.conf.backup ]]; then
 		info "Network: Backing up old sysctl.conf file"

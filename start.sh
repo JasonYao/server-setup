@@ -120,6 +120,49 @@ function setupUserBaseline () {
 	fi
 }
 
+function setupUserDotfiles () {
+	# Downloads and installs the dotfiles to the newly created user's directory
+	if [[ ! -d "$dotfilesDirectory" ]]; then
+		info "Dotfiles: Downloading missing dotfiles"
+
+		# Checks for git installation before using command
+		if [[ $(which git) == "" ]]; then
+			info "Downloading git dependency now"
+			if sudo apt-get install git &> /dev/null; then
+				success "Git dependency is now installed"
+			else
+				fail "Git dependency failed to install"
+			fi
+		else
+			success "Git dependency is already installed"
+		fi
+
+		# Downloads the actual dotfiles
+		if git clone --recursive https://github.com/JasonYao/dotfiles.git "$dotfilesDirectory" &> /dev/null ; then
+			success "Dotfiles: Successfully downloaded dotfiles"
+		else
+			fail "Dotfiles: Unable to download dotfiles"
+		fi
+	else
+		info "Dotfiles: Updating prior downloaded dotfiles now"
+		if git -C "$dotfilesDirectory" pull &> /dev/null ; then
+			success "Dotfiles: Successfully updated dotfiles"
+		else
+			fail "Dotfiles: Unable to update dotfiles"
+		fi
+	fi
+
+	# Sets up SSH key access for the user
+	if [[ ! -d "/home/$username/.ssh" ]]; then
+		mkdir /home/$username/.ssh
+		chmod 700 /home/$username/.ssh
+		echo "$sshPublicKey" >> /home/$username/.ssh/authorized_keys
+		chmod 600 /home/$username/.ssh/authorized_keys
+		chown -R "$username":"$username" /home/$username/.ssh
+		success "Installed SSH key access for $username"
+	fi
+}
+
 function setupSSH () {
 	# Secures SSH daemon
 	# Makes a backup
@@ -428,25 +471,27 @@ function setupNetworkHarden () {
 	updateAndUpgrade
 
 	# Checks for dependency packages
-	checkAndInstallPackage wget				# Used in general downloading
-	checkAndInstallPackage git				# Used in general project upkeep
-	checkAndInstallPackage unzip			# Used with dealing with cached dotfile files
-	checkAndInstallPackage build-essential	# Used in pre-compiling rbenv
+	checkAndInstallPackage "wget"				# Used in general downloading
+	checkAndInstallPackage "git"				# Used in general project upkeep
+	checkAndInstallPackage "unzip"				# Used with dealing with cached dotfile files
+	checkAndInstallPackage "build-essential"	# Used in pre-compiling rbenv
+	checkAndInstallPackage "sed"				# Used throughout this program
 
 	# Checks for pyenv dependencies
-	checkAndInstallPackage make
-	checkAndInstallPackage libssl-dev
-	checkAndInstallPackage zlib1g-dev
-	checkAndInstallPackage libbz2-dev
-	checkAndInstallPackage libreadline-dev
-	checkAndInstallPackage libsqlite3-dev
-	checkAndInstallPackage curl
-	checkAndInstallPackage llvm
-	checkAndInstallPackage libncurses5-dev
-	checkAndInstallPackage xz-utils
+	checkAndInstallPackage "make"
+	checkAndInstallPackage "libssl-dev"
+	checkAndInstallPackage "zlib1g-dev"
+	checkAndInstallPackage "libbz2-dev"
+	checkAndInstallPackage "libreadline-dev"
+	checkAndInstallPackage "libsqlite3-dev"
+	checkAndInstallPackage "curl"
+	checkAndInstallPackage "llvm"
+	checkAndInstallPackage "libncurses5-dev"
+	checkAndInstallPackage "xz-utils"
 	autoRemove
 
 	setupUserBaseline
+	setupUserDotfiles
 	setupSSH
 	setupAutoUpdate
 	setupUFW
@@ -455,43 +500,4 @@ function setupNetworkHarden () {
 	setupSuPrivileges
 	setupNetworkHarden
 
-# Downloads and installs the dotfiles to the newly created user's directory
-if [[ ! -d "$dotfilesDirectory" ]]; then
-	info "Dotfiles: Downloading missing dotfiles"
-
-	# Checks for git installation before using command
-	if [[ $(which git) == "" ]]; then
-		info "Downloading git dependency now"
-		if sudo apt-get install git &> /dev/null; then
-			success "Git dependency is now installed"
-		else
-			fail "Git dependency failed to install"
-		fi
-	else
-		success "Git dependency is already installed"
-	fi
-
-	# Downloads the actual dotfiles
-	if git clone --recursive https://github.com/JasonYao/dotfiles.git "$dotfilesDirectory" &> /dev/null ; then
-		success "Dotfiles: Successfully downloaded dotfiles"
-	else
-		fail "Dotfiles: Unable to download dotfiles"
-	fi
-else
-	info "Dotfiles: Updating prior downloaded dotfiles now"
-	if git -C "$dotfilesDirectory" pull &> /dev/null ; then
-		success "Dotfiles: Successfully updated dotfiles"
-	else
-		fail "Dotfiles: Unable to update dotfiles"
-	fi
-fi
-
-# Sets up SSH key access for the user
-	if [[ ! -d "/home/$username/.ssh" ]]; then
-		mkdir /home/$username/.ssh
-		chmod 700 /home/$username/.ssh
-		echo "$sshPublicKey" >> /home/$username/.ssh/authorized_keys
-		chmod 600 /home/$username/.ssh/authorized_keys
-		chown -R "$username":"$username" /home/$username/.ssh
-		success "Installed SSH key access for $username"
-	fi
+	success "Server setup: Complete"

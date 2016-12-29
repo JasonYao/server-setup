@@ -39,11 +39,49 @@ The following flow can be achieved with the one-liner provided below.
 - Delete script
 
 ## Install
-The following one-liner will setup initial requirements before
-running through a normal install via the [start script](start.sh)
+The following one-liner should be used normally,
+due to "sane" defaults already set (password should 
+be changed though).
 ```sh
 wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && bash start.sh; rm -rf start.sh
 ```
 
+## Customisation
+This install script was built to have overridable defaults,
+and can have the following settings overridden:
+- User name (default is `jason`)
+- User password 
+- User default shell (defaults to `bash`, some potential ones are `zsh`, `ksh`, etc.) *
+- User dotfiles location (defaults to `~/.dotfiles`)
+- User SSH public key value
+
+* NOTE: The overridden shell should first be installed
+on the host, otherwise the user's `SHELL` will simply
+be set to `sh`.
+
+### Changing the user and password
+```sh
+wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && username="YOUR NAME HERE" password="YOUR PASSWORD HERE" bash start.sh; rm -rf start.sh
+```
+
+### Changing the user's default shell, dotfiles directory, and SSH key
+```sh
+wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && defaultShell="zsh" dotfilesDirectory="/home/jason/.other_dir" sshPublicKey="ssh-ed25519 blahblahblahblah" bash start.sh; rm -rf start.sh
+```
+
+### Changing everything
+Just fork this repo and change the default,
+why bother overriding values at this point?
+
+## Forking Note
+If you plan on using this setup script,
+my personal recommendation is to simply
+fork this repo, and change the hard-coded
+defaults in the script.
+
+The defaults are located at lines `10`
+through `14`, and should be self-explanatory
+on how to change.
+
 ## License
-This repo is licensed under the terms of the GNU GPL v3, a copy of which may be found [here](LICENSE)
+This repo is licensed under the terms of the GNU GPL v3, a copy of which may be found [here](LICENSE).

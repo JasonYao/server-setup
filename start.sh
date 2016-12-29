@@ -10,7 +10,7 @@ set -e
 : "${username:="jason"}"
 : "${password:="f%@nKc5K9kfgMdWHdCLsgvDjTuJXsc3H"}"
 : "${defaultShell:="bash"}"
-: "${dotfilesDirectory:="/home/$username/dotfiles"}"
+: "${dotfilesDirectory:="/home/$username/.dotfiles"}"
 : "${sshPublicKey:="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhNCsxxzqX4c0mKcEmuiDdjnaHg2eQtmaTR3RWolf8F Jason@Jasons-MacBook-Pro.local"}"
 
 ###

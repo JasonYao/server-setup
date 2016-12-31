@@ -125,18 +125,6 @@ function setupUserDotfiles () {
 	if [[ ! -d "$dotfilesDirectory" ]]; then
 		info "Dotfiles: Downloading missing dotfiles"
 
-		# Checks for git installation before using command
-		if [[ $(which git) == "" ]]; then
-			info "Downloading git dependency now"
-			if sudo apt-get install git &> /dev/null; then
-				success "Git dependency is now installed"
-			else
-				fail "Git dependency failed to install"
-			fi
-		else
-			success "Git dependency is already installed"
-		fi
-
 		# Downloads the actual dotfiles
 		if git clone --recursive https://github.com/JasonYao/dotfiles.git "$dotfilesDirectory" &> /dev/null ; then
 			success "Dotfiles: Successfully downloaded dotfiles"
@@ -488,23 +476,9 @@ function setupMotD() {
 	updateAndUpgrade
 
 	# Checks for dependency packages
-	checkAndInstallPackage "wget"				# Used in general downloading
-	checkAndInstallPackage "git"				# Used in general project upkeep
-	checkAndInstallPackage "unzip"				# Used with dealing with cached dotfile files
-	checkAndInstallPackage "build-essential"	# Used in pre-compiling rbenv
+	checkAndInstallPackage "git"				# Used in dotfile downloading & upkeep
 	checkAndInstallPackage "sed"				# Used throughout this program
 
-	# Checks for pyenv dependencies
-	checkAndInstallPackage "make"
-	checkAndInstallPackage "libssl-dev"
-	checkAndInstallPackage "zlib1g-dev"
-	checkAndInstallPackage "libbz2-dev"
-	checkAndInstallPackage "libreadline-dev"
-	checkAndInstallPackage "libsqlite3-dev"
-	checkAndInstallPackage "curl"
-	checkAndInstallPackage "llvm"
-	checkAndInstallPackage "libncurses5-dev"
-	checkAndInstallPackage "xz-utils"
 	autoRemove
 
 	setupUserBaseline

@@ -31,16 +31,9 @@ to work on these supported platforms.
 - AWS ubuntu 16.04 LTS server
 - Raspberry Pi Raspbian
 
-## Flow
-The following flow can be achieved with the one-liner provided below.
-- Download script
-- Run script
-- Validate script outcomes
-- Delete script
-
 ## Install
 The following one-liner should be used normally,
-due to "sane" defaults already set (password should 
+due to "sane" defaults already set (password should
 be changed though).
 ```sh
 wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && bash start.sh; rm -rf start.sh
@@ -50,7 +43,7 @@ wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> 
 This install script was built to have overridable defaults,
 and can have the following settings overridden:
 - User name (default is `jason`)
-- User password 
+- User password
 - User default shell (defaults to `bash`, some potential ones are `zsh`, `ksh`, etc.) *
 - User dotfiles location (defaults to `~/.dotfiles`)
 - User SSH public key value

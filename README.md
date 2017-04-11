@@ -59,7 +59,7 @@ wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start &> /de
 
 ### Changing the user's default shell, dotfiles directory, and SSH key
 ```sh
-wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start &> /dev/null && defaultShell="zsh" dotfilesDirectory="/home/jason/.other_dir" sshPublicKey="ssh-ed25519 blahblahblahblah" bash start; rm -rf start
+wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start &> /dev/null && default_shell="zsh" dotfiles_directory="/home/jason/.other_dir" ssh_public_key="ssh-ed25519 blahblahblahblah" bash start; rm -rf start
 ```
 
 ### Changing everything

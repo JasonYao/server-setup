@@ -130,11 +130,8 @@ function setup_user_dotfiles () {
 			fail "Dotfiles: Unable to download dotfiles"
 		fi
 
-		# Runs the dotfiles start script
-		wget https://raw.githubusercontent.com/JasonYao/dotfiles/master/start -O "/home/$username/start" &> /dev/null
-		chown "$username":"$username" "/home/$username/start"
-		su -c "bash /home/$username/start" "$username"
-		rm /home/$username/start
+		# Tells the user to run their install
+		warn "Dotfiles: Please run your dotfiles installation script as $username"
 	else
 		info "Dotfiles: Updating prior downloaded dotfiles now"
 		if git -C "$dotfiles_directory" pull &> /dev/null ; then

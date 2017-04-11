@@ -5,13 +5,11 @@
 # newly provisioned hosts
 ##
 
-set -e
-
 : "${username:="jason"}"
 : "${password:="f%@nKc5K9kfgMdWHdCLsgvDjTuJXsc3H"}"
-: "${defaultShell:="bash"}"
-: "${dotfilesDirectory:="/home/$username/.dotfiles"}"
-: "${sshPublicKey:="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhNCsxxzqX4c0mKcEmuiDdjnaHg2eQtmaTR3RWolf8F Jason@Jasons-MacBook-Pro.local"}"
+: "${default_shell:="bash"}"
+: "${dotfiles_directory:="/home/$username/.dotfiles"}"
+: "${ssh_public_key:="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhNCsxxzqX4c0mKcEmuiDdjnaHg2eQtmaTR3RWolf8F Jason@Jasons-MacBook-Pro.local"}"
 
 ###
 # Helper functions
@@ -34,7 +32,7 @@ function fail () {
 	exit 1
 }
 
-function checkAndInstallPackage () {
+function check_and_install_package () {
 	info "Checking for $1"
 	if dpkg -s "$1" > /dev/null 2>&1 ; then
 		success "$1 is already installed"
@@ -55,21 +53,21 @@ function change_substring () {
 	sudo sed -i "s/${search}/${replace}/g" "${file}"
 }
 
-function checkAndSetAutoSettings () {
+function check_and_set_auto_settings () {
 	change_substring "$1" "$2" /etc/apt/apt.conf.d/50unattended-upgrades
 }
 
-function checkAndSetNetworkSettings () {
+function check_and_set_network_settings () {
     change_substring "$1" "$2" /etc/sysctl.conf
 }
 
-function checkAndAppendSettings () {
+function check_and_append_settings () {
 	if [[ $(grep "$1" "/etc/apt/apt.conf.d/20auto-upgrades") == "" ]]; then
 		echo "$1" | sudo tee --append /etc/apt/apt.conf.d/20auto-upgrades &> /dev/null
 	fi
 }
 
-function updateAndUpgrade () {
+function update_and_upgrade () {
 	# Updates & upgrades
 	info "Updating packages"
 	if sudo apt-get update -y > /dev/null ; then
@@ -86,7 +84,7 @@ function updateAndUpgrade () {
 	fi
 }
 
-function autoRemove () {
+function auto_remove () {
 	# Auto removes any unnecessary packages
 	info "Auto removing any unnecessary packages"
 	if sudo apt-get autoremove -y > /dev/null ; then
@@ -96,7 +94,7 @@ function autoRemove () {
 	fi
 }
 
-function setupUserBaseline () {
+function setup_user_baseline () {
 	# Adds a new user if it doesn't exist
 	if [[ $(cut -d: -f1 < /etc/passwd | grep "$username") == "" ]]; then
 		# Checks for input password for user, otherwise goes with default
@@ -104,7 +102,7 @@ function setupUserBaseline () {
 			warn "Warning: Default password was used, please change user password to something else via \`sudo passwd $username\`"
 		fi
 
-		useradd -m -p "$password" -s "$(which "$defaultShell")" "$username"
+		useradd -m -p "$password" -s "$(which "$default_shell")" "$username"
 		echo "$username:$password" | chpasswd
 		success "Created user $username"
 	else
@@ -120,20 +118,20 @@ function setupUserBaseline () {
 	fi
 }
 
-function setupUserDotfiles () {
+function setup_user_dotfiles () {
 	# Downloads and installs the dotfiles to the newly created user's directory
-	if [[ ! -d "$dotfilesDirectory" ]]; then
+	if [[ ! -d "$dotfiles_directory" ]]; then
 		info "Dotfiles: Downloading missing dotfiles"
 
 		# Downloads the actual dotfiles
-		if git clone --recursive https://github.com/JasonYao/dotfiles.git "$dotfilesDirectory" &> /dev/null ; then
+		if git clone --recursive https://github.com/JasonYao/dotfiles.git "$dotfiles_directory" &> /dev/null ; then
 			success "Dotfiles: Successfully downloaded dotfiles"
 		else
 			fail "Dotfiles: Unable to download dotfiles"
 		fi
 	else
 		info "Dotfiles: Updating prior downloaded dotfiles now"
-		if git -C "$dotfilesDirectory" pull &> /dev/null ; then
+		if git -C "$dotfiles_directory" pull &> /dev/null ; then
 			success "Dotfiles: Successfully updated dotfiles"
 		else
 			fail "Dotfiles: Unable to update dotfiles"
@@ -144,14 +142,14 @@ function setupUserDotfiles () {
 	if [[ ! -d "/home/$username/.ssh" ]]; then
 		mkdir /home/$username/.ssh
 		chmod 700 /home/$username/.ssh
-		echo "$sshPublicKey" >> /home/$username/.ssh/authorized_keys
+		echo "$ssh_public_key" >> /home/$username/.ssh/authorized_keys
 		chmod 600 /home/$username/.ssh/authorized_keys
 		chown -R "$username":"$username" /home/$username/.ssh
 		success "Installed SSH key access for $username"
 	fi
 }
 
-function setupSSH () {
+function setup_ssh () {
 	# Secures SSH daemon
 	# Makes a backup
 	if [[ ! -d "/etc/ssh/sshd_config.backup" ]]; then
@@ -188,29 +186,29 @@ function setupSSH () {
 	sudo service ssh restart
 }
 
-function setupAutoUpdate () {
+function setup_auto_update () {
 	# Sets up automatic updating
-	checkAndInstallPackage unattended-upgrades
-	checkAndInstallPackage update-notifier-common
+	check_and_install_package unattended-upgrades
+	check_and_install_package update-notifier-common
 
 	if [[ ! -f "/etc/apt/apt.conf.d/20auto-upgrades" ]]; then
 		# Creates an empty file
 		> /etc/apt/apt.conf.d/20auto-upgrades
 	fi
 
-	checkAndAppendSettings "APT::Periodic::Update-Package-Lists \"1\";"
-	checkAndAppendSettings "APT::Periodic::Unattended-Upgrade \"1\";"
-	checkAndAppendSettings "APT::Periodic::AutocleanInterval \"7\";"
+	check_and_append_settings "APT::Periodic::Update-Package-Lists \"1\";"
+	check_and_append_settings "APT::Periodic::Unattended-Upgrade \"1\";"
+	check_and_append_settings "APT::Periodic::AutocleanInterval \"7\";"
 
-	checkAndSetAutoSettings "\/\/	\"\${distro_id}:\${distro_codename}-updates\";" "		\"\${distro_id}:\${distro_codename}-updates\";"
-	checkAndSetAutoSettings "\/\/Unattended-Upgrade::Automatic-Reboot \"false\";" "Unattended-Upgrade::Automatic-Reboot \"true\";"
-	checkAndSetAutoSettings "\/\/Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";" "Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";"
+	check_and_set_auto_settings "\/\/	\"\${distro_id}:\${distro_codename}-updates\";" "		\"\${distro_id}:\${distro_codename}-updates\";"
+	check_and_set_auto_settings "\/\/Unattended-Upgrade::Automatic-Reboot \"false\";" "Unattended-Upgrade::Automatic-Reboot \"true\";"
+	check_and_set_auto_settings "\/\/Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";" "Unattended-Upgrade::Automatic-Reboot-Time \"02:00\";"
 	success "Auto Updates: All configurations have been set"
 }
 
-function setupUFW () {
+function setup_ufw () {
 	# Sets up ufw (firewall)
-	checkAndInstallPackage ufw
+	check_and_install_package ufw
 
 	# Alters the SSH default port that the ufw application uses
 	change_substring "ports=22" "ports=30000" /etc/ufw/applications.d/openssh-server
@@ -259,8 +257,8 @@ function setupUFW () {
 	fi
 }
 
-function setupFail2Ban () {
-	checkAndInstallPackage fail2ban				# Used in ip-banning on both nginx and ufw
+function setup_fail2ban () {
+	check_and_install_package fail2ban				# Used in ip-banning on both nginx and ufw
 
 	# Creates a local jail to use ufw
 	if [ ! -f "/etc/fail2ban/jail.local" ]; then
@@ -281,7 +279,7 @@ function setupFail2Ban () {
 	sudo service fail2ban restart
 }
 
-function setupSharedMemory () {
+function setup_shared_memory () {
 	info "Shared Memory: Checking security status"
 	if [[ $(grep "/run/shm" /etc/fstab) == "" ]]; then
 		info "Shared Memory: Memory is currently unsecured, securing now"
@@ -293,7 +291,7 @@ function setupSharedMemory () {
 	fi
 }
 
-function setupSuPrivileges () {
+function setup_su_privileges () {
 	# Checks for admin group existence
 	info "Su Privileges: Checking security status"
 	if [[ $(grep "admin" /etc/group) == "" ]]; then
@@ -324,7 +322,7 @@ function setupSuPrivileges () {
 }
 
 # Helper function
-function setupNetworkHarden () {
+function setup_network_harden () {
 	# Backs up
 	if [[ ! -f /etc/sysctl.conf.backup ]]; then
 		info "Network: Backing up old sysctl.conf file"
@@ -337,35 +335,35 @@ function setupNetworkHarden () {
 
 	# IP Spoofing protection
 	info "Network: Setting IP spoofing protection"
-	checkAndSetNetworkSettings "#net.ipv4.conf.default.rp_filter=1" "net.ipv4.conf.default.rp_filter=1"
-	checkAndSetNetworkSettings "#net.ipv4.conf.all.rp_filter=1" "net.ipv4.conf.all.rp_filter=1"
+	check_and_set_network_settings "#net.ipv4.conf.default.rp_filter=1" "net.ipv4.conf.default.rp_filter=1"
+	check_and_set_network_settings "#net.ipv4.conf.all.rp_filter=1" "net.ipv4.conf.all.rp_filter=1"
 	success "Network: IP spoofing protection is enabled"
 
 	# Disable source packet routing
 	info "Network: Disabling source packet routing (we are not a router)"
-	checkAndSetNetworkSettings "#net.ipv4.conf.all.accept_source_route = 0" "net.ipv4.conf.all.accept_source_route = 0"
-	checkAndSetNetworkSettings "#net.ipv6.conf.all.accept_source_route = 0" "net.ipv6.conf.all.accept_source_route = 0"
+	check_and_set_network_settings "#net.ipv4.conf.all.accept_source_route = 0" "net.ipv4.conf.all.accept_source_route = 0"
+	check_and_set_network_settings "#net.ipv6.conf.all.accept_source_route = 0" "net.ipv6.conf.all.accept_source_route = 0"
 	success "Network: Source packet routing disabled (we are not a router)"
 
 	# Ignore send redirects
 	info "Network: Disabling sending of ICMP redirects (we are not a router)"
-	checkAndSetNetworkSettings "#net.ipv4.conf.all.send_redirects = 0" "net.ipv4.conf.all.send_redirects = 0"
+	check_and_set_network_settings "#net.ipv4.conf.all.send_redirects = 0" "net.ipv4.conf.all.send_redirects = 0"
 	success "Network: ICMP send redirects now ignored by default (we are not a router)"
 
 	# Block SYN attacks
 	info "Network: Blocking SYN attacks via SYN cookie enabling"
-	checkAndSetNetworkSettings "#net.ipv4.tcp_syncookies=1" "net.ipv4.tcp_syncookies=1"
+	check_and_set_network_settings "#net.ipv4.tcp_syncookies=1" "net.ipv4.tcp_syncookies=1"
 	success "Network: SYN cookie enabled"
 
 	# Log Martians
 	info "Network: Logging Martian packets"
-	checkAndSetNetworkSettings "#net.ipv4.conf.all.log_martians = 1" "net.ipv4.conf.all.log_martians = 1"
+	check_and_set_network_settings "#net.ipv4.conf.all.log_martians = 1" "net.ipv4.conf.all.log_martians = 1"
 	success "Network: All Martian packets are now logged"
 
 	# Ignore ICMP redirects
 	info "Network: Blocking MitM attacks via ICMP redirect disable"
-	checkAndSetNetworkSettings "#net.ipv4.conf.all.accept_redirects = 0" "net.ipv4.conf.all.accept_redirects = 0"
-	checkAndSetNetworkSettings "#net.ipv6.conf.all.accept_redirects = 0" "net.ipv6.conf.all.accept_redirects = 0"
+	check_and_set_network_settings "#net.ipv4.conf.all.accept_redirects = 0" "net.ipv4.conf.all.accept_redirects = 0"
+	check_and_set_network_settings "#net.ipv6.conf.all.accept_redirects = 0" "net.ipv6.conf.all.accept_redirects = 0"
 	success "Network: ICMP redirects are now disabled"
 
 	# Settings that have to be appended to the file, not changed
@@ -387,7 +385,7 @@ function setupNetworkHarden () {
 			echo "net.ipv6.conf.default.accept_source_route = 0"
 			echo ""
 		} | sudo tee --append /etc/sysctl.conf &> /dev/null
-		success "Network: Source packet routing is now disabled"	
+		success "Network: Source packet routing is now disabled"
 	else
 		success "Network: Source packet routing is already disabled"
 	fi
@@ -454,7 +452,7 @@ function setupNetworkHarden () {
 	sudo sysctl -p &> /dev/null
 }
 
-function setupMotD() {
+function setup_motd() {
 	# Sets up correct motd settings
 	if [[ $(echo /etc/update-motd.d/* | grep "00-header" | grep "\-rw\-r\-\-r\-\-") == "" ]]; then
 		sudo chmod -x /etc/update-motd.d/00-header
@@ -473,23 +471,23 @@ function setupMotD() {
 }
 # Start of actually calling the setup functions
 	# Does server setup
-	updateAndUpgrade
+	update_and_upgrade
 
 	# Checks for dependency packages
-	checkAndInstallPackage "git"				# Used in dotfile downloading & upkeep
-	checkAndInstallPackage "sed"				# Used throughout this program
+	check_and_install_package "git"				# Used in dotfile downloading & upkeep
+	check_and_install_package "sed"				# Used throughout this program
 
-	autoRemove
+	auto_remove
 
-	setupUserBaseline
-	setupUserDotfiles
-	setupSSH
-	setupAutoUpdate
-	setupUFW
-	setupFail2Ban
-	setupSharedMemory
-	setupSuPrivileges
-	setupNetworkHarden
-	setupMotD
+	setup_user_baseline
+	setup_user_dotfiles
+	setup_ssh
+	setup_auto_update
+	setup_ufw
+	setup_fail2ban
+	setup_shared_memory
+	setup_su_privileges
+	setup_network_harden
+	setup_motd
 
 	success "Server setup: Complete"

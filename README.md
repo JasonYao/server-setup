@@ -1,5 +1,5 @@
 # Automated Server Setup (Please don't acronym this)
-By Jason Yao
+By [Jason Yao](https://github.com/JasonYao)
 
 ## Description
 This repo contains my automated setup script to take care of the
@@ -16,7 +16,7 @@ automated setup approach that will do the following:
 - Secures shared memory access
 - Secures `su` privileges
 - Secures networking (IP spoofing protection, source packet routing disabling, etc.)
-- Monitoring subscription (monit if single host, kubernetes if part of docker cloud)
+- [INCOMPLETE] Monitoring subscription (monit if single host, kubernetes if part of docker cloud)
 
 **NOTE**: It is assumed that the user of this script
 has the necessary permissions. Basically, if you're
@@ -36,7 +36,7 @@ The following one-liner should be used normally,
 due to "sane" defaults already set (password should
 be changed though).
 ```sh
-wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && bash start.sh; rm -rf start.sh
+curl -s https://raw.githubusercontent.com/JasonYao/server-setup/master/start | bash
 ```
 
 ## Customisation
@@ -54,12 +54,12 @@ be set to `sh`.
 
 ### Changing the user and password
 ```sh
-wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && username="YOUR NAME HERE" password="YOUR PASSWORD HERE" bash start.sh; rm -rf start.sh
+wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start &> /dev/null && username="YOUR NAME HERE" password="YOUR PASSWORD HERE" bash start; rm -rf start
 ```
 
 ### Changing the user's default shell, dotfiles directory, and SSH key
 ```sh
-wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start.sh &> /dev/null && defaultShell="zsh" dotfilesDirectory="/home/jason/.other_dir" sshPublicKey="ssh-ed25519 blahblahblahblah" bash start.sh; rm -rf start.sh
+wget https://raw.githubusercontent.com/JasonYao/server-setup/master/start &> /dev/null && defaultShell="zsh" dotfilesDirectory="/home/jason/.other_dir" sshPublicKey="ssh-ed25519 blahblahblahblah" bash start; rm -rf start
 ```
 
 ### Changing everything

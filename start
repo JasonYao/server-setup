@@ -94,6 +94,20 @@ function auto_remove () {
 	fi
 }
 
+function setup_keyboard() {
+    # Sets the keyboard to US if it's not already
+    if [[ -f /etc/default/keyboard ]]; then
+        if [[ $(grep 'XKBLAYOUT="us"' /etc/default/keyboard) == "" ]]; then
+            change_substring 'XKBLAYOUT="\w*"' 'XKBLAYOUT="us"' /etc/default/keyboard
+            warn "Keyboard: Successfully set the keyboard default to US, but you'll need to reboot"
+        else
+            success "Keyboard: Default keyboard is already US"
+        fi
+    else
+        success "Keyboard: No default keyboard config was found"
+    fi
+}
+
 function setup_user_baseline () {
 	# Adds a new user if it doesn't exist
 	if [[ $(cut -d: -f1 < /etc/passwd | grep "$username") == "" ]]; then
@@ -449,6 +463,7 @@ function setup_motd() {
 
 	auto_remove
 
+    setup_keyboard
 	setup_user_baseline
 	setup_ssh
 	setup_auto_update

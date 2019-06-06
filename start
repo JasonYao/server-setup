@@ -423,21 +423,22 @@ function setup_network_harden () {
 
 function setup_motd() {
 	# Sets up correct motd settings
-	if [[ $(echo /etc/update-motd.d/* | grep "00-header" | grep "\-rw\-r\-\-r\-\-") == "" ]]; then
-		sudo chmod -x /etc/update-motd.d/00-header
+	if [[ -f /etc/update-motd.d/00-header ]]; then
+		sudo mv /etc/update-motd.d/00-header /etc/update-motd.d-00-header.backup
 		success "MotD: Disabled header text"
 	fi
 
-	if [[ $(echo /etc/update-motd.d/* | grep "10-help-text" | grep "\-rw\-r\-\-r\-\-") == "" ]]; then
-		sudo chmod -x /etc/update-motd.d/10-help-text
+	if [[ -f /etc/update-motd.d/10-help-text ]]; then
+		sudo mv /etc/update-motd.d/10-help-text /etc/update-motd.d-10-help-text.backup
 		success "MotD: Disabled help text"
 	fi
 
-	if [[ $(echo /etc/* | grep "legal.backup") == "" ]]; then
+	if [[ -f /etc/legal ]]; then
 		sudo mv /etc/legal /etc/legal.backup
 		success "MotD: Disabled legal notice"
 	fi
 }
+
 # Start of actually calling the setup functions
 	# Does server setup
 	update_and_upgrade

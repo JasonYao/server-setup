@@ -483,7 +483,30 @@ function setup_motd() {
 	fi
 }
 
+function sanity_check() {
+    if [[ -f /.server_setup ]]; then
+        success "Early Exit: Server is already setup, no need to run setup script"
+        exit 0
+    else
+        info "Setup: Server has not been provisioned before, setting up now"
+    fi
+}
+
+function mark_success() {
+    if [[ -f /.server_setup ]]; then
+        success "Mark: Server is already setup"
+    else
+        if sudo touch /.server_setup ; then
+            success "Mark: Successfully marked the server as fully functional"
+        else
+            fail "Mark: Failed to mark the server as fully functional"
+        fi
+    fi
+}
+
 # Start of actually calling the setup functions
+    sanity_check
+
     # Sets up wifi if it's not setup
     setup_wifi
 
@@ -506,5 +529,7 @@ function setup_motd() {
 	setup_su_privileges
 	setup_network_harden
 	setup_motd
+
+	mark_success
 
 	success "Server setup: Complete"

@@ -10,6 +10,8 @@
 : "${default_shell:="bash"}"
 : "${dotfiles_directory:="/home/$username/.dotfiles"}"
 : "${ssh_public_key:="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhNCsxxzqX4c0mKcEmuiDdjnaHg2eQtmaTR3RWolf8F Jason@Jasons-MacBook-Pro.local"}"
+: "${wifi_ssid:="your_wifi_here"}"
+: "${wifi_password:="your_wifi_password_here"}"
 
 ###
 # Helper functions
@@ -65,6 +67,25 @@ function check_and_append_settings () {
 	if [[ $(grep "$1" "/etc/apt/apt.conf.d/20auto-upgrades") == "" ]]; then
 		echo "$1" | sudo tee --append /etc/apt/apt.conf.d/20auto-upgrades &> /dev/null
 	fi
+}
+
+function setup_wifi() {
+    if [[ $(grep "${wifi_ssid}" /etc/wpa_supplicant/wpa_supplicant.conf) == "" ]]; then
+        info "Wifi: Adding in wifi"
+		{
+			echo "ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev"
+			echo "update_config=1"
+			echo "country=US"
+			printf "\n\n"
+			echo "network={"
+			echo "    ssid=\"${wifi_ssid}\""
+			echo "    psk=\"${wifi_password}\""
+			echo "}"
+		} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf &> /dev/null
+		success "Wifi: Successfully setup wifi"
+    else
+        success "Wifi: Already setup wifi"
+    fi
 }
 
 function update_and_upgrade () {
@@ -454,6 +475,9 @@ function setup_motd() {
 }
 
 # Start of actually calling the setup functions
+    # Sets up wifi if it's not setup
+    setup_wifi
+
 	# Does server setup
 	update_and_upgrade
 

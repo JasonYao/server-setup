@@ -214,7 +214,8 @@ function setup_ssh () {
 	fi
 
 	# Restarts ssh daemon
-	sudo service ssh restart
+	sudo systemctl enable ssh
+	sudo systemctl restart ssh
 }
 
 function setup_auto_update () {

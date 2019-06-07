@@ -153,6 +153,30 @@ function setup_user_baseline () {
 	fi
 }
 
+function setup_user_ssh () {
+    # Checks that the baseline directory is good
+    if [[ -d /home/${username}/.ssh ]]; then
+        success "User SSH: SSH directory already created"
+    else
+        if sudo -u "${username}" mkdir /home/${username}/.ssh && sudo chmod 700 /home/${username}/.ssh; then
+            success "User SSH: SSH directory is now created with the correct permissions"
+        else
+            fail "User SSH: SSH directory failed to be created with the correct permissions"
+        fi
+    fi
+
+    # Checks the actual SSH authorized key setup itself
+    if [[ -f /home/${username}/.ssh/authorized_keys && $(sudo cat /home/${username}/.ssh/authorized_keys | grep "${ssh_public_key}") == "" ]]; then
+        success "User SSH: Authorized key file for user is already created"
+    else
+        if sudo -u "${username}" echo "${ssh_public_key}" >> /home/${username}/.ssh/authorized_keys; then
+            success "User SSH: Authorized key file for user is now created"
+        else
+            fail "User SSH: Authorized key file for user failed to be created"
+        fi
+    fi
+}
+
 function setup_ssh () {
 	# Secures SSH daemon
 	# Makes a backup
@@ -521,6 +545,7 @@ function mark_success() {
 
     setup_keyboard
 	setup_user_baseline
+	setup_user_ssh
 	setup_ssh
 	setup_auto_update
 	setup_ufw

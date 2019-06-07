@@ -217,6 +217,15 @@ function setup_ufw () {
 	# Alters the SSH default port that the ufw application uses
 	change_substring "ports=22" "ports=30000" /etc/ufw/applications.d/openssh-server
 
+	# Checks if it's the first run
+	if sudo ufw status &> /dev/null ; then
+	    success "UFW: Successfully initialized the firewall"
+	else
+        warn "UFW: Failed to initialize the firewall (if it's the first time no worries. Rebooting in 5 seconds)"
+        sleep 5
+        sudo reboot now
+	fi
+
 	# Checks to make sure that the ssh port is setup
 	if [[ $(sudo ufw show added | grep "ufw limit OpenSSH") == "" ]]; then
 		if sudo ufw limit OpenSSH > /dev/null; then

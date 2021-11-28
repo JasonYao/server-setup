@@ -70,7 +70,7 @@ function check_and_append_settings () {
 }
 
 function setup_wifi() {
-    if [[ $(grep "${wifi_ssid}" /etc/wpa_supplicant/wpa_supplicant.conf) == "" ]]; then
+    if [[ $(sudo grep "${wifi_ssid}" /etc/wpa_supplicant/wpa_supplicant.conf) == "" ]]; then
         info "Wifi: Adding in wifi"
 		{
 			echo "ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev"
@@ -169,11 +169,18 @@ function setup_user_ssh () {
     if [[ -f /home/${username}/.ssh/authorized_keys && $(sudo cat /home/${username}/.ssh/authorized_keys | grep "${ssh_public_key}") == "" ]]; then
         success "User SSH: Authorized key file for user is already created"
     else
-        if sudo echo "${ssh_public_key}" >> /home/${username}/.ssh/authorized_keys && sudo chown "${username}:${username}" /home/${username}/.ssh/authorized_keys; then
+        if echo "${ssh_public_key}" | sudo tee --append /home/${username}/.ssh/authorized_keys; then
             success "User SSH: Authorized key file for user is now created"
         else
             fail "User SSH: Authorized key file for user failed to be created"
         fi
+    fi
+
+    # Adds in the correct permissions for the newly created authorized key file
+    if sudo chown "${username}:${username}" /home/${username}/.ssh/authorized_keys; then
+        success "User SSH: Successfully set the permissions for the authorized key file"
+    else
+        fail "User SSH: Failed to set the correct permissions for the authorized key file"
     fi
 }
 
@@ -538,27 +545,28 @@ function mark_success() {
     # Sets up wifi if it's not setup
     setup_wifi
 
-	# Does server setup
-	update_and_upgrade
+    # Does server setup
+    update_and_upgrade
 
-	# Checks for dependency packages
-	check_and_install_package "git"				# Used in dotfile downloading & upkeep
-	check_and_install_package "sed"				# Used throughout this program
+    # Checks for dependency packages
+    check_and_install_package "git"				# Used in dotfile downloading & upkeep
+    check_and_install_package "sed"				# Used throughout this program
 
-	auto_remove
+    auto_remove
 
     setup_keyboard
-	setup_user_baseline
-	setup_user_ssh
-	setup_ssh
-	setup_auto_update
-	setup_ufw
-	setup_fail2ban
-	setup_shared_memory
-	setup_su_privileges
-	setup_network_harden
-	setup_motd
+    setup_user_baseline
+    setup_user_ssh
+    setup_ssh
+    # setup_auto_update # NOTE: Either add in conditionals to only run for debian versions below 9/for non-debian systems, or remove entirely later
+    setup_ufw
+    setup_fail2ban
+    setup_shared_memory
+    setup_su_privileges
+    setup_network_harden
+    setup_motd
 
-	mark_success
+    mark_success
 
-	success "Server setup: Complete"
+    info "If this is a pihole installation, please run the following command: \`sudo ufw allow http && sudo ufw allow dns && sudo ufw enable\`"
+    success "Server setup: Complete"

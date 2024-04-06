@@ -1,0 +1,294 @@
+#!/usr/bin/env bash
+
+##
+# Sets up basic server settings on
+# newly provisioned hosts
+##
+
+: "${username:="jason"}"
+: "${ssh_public_key:="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhNCsxxzqX4c0mKcEmuiDdjnaHg2eQtmaTR3RWolf8F Jason@Jasons-MacBook-Pro.local"}"
+
+
+function setup_server() {
+    # Start of actually calling the setup functions
+    sanity_check
+
+    # Does server setup
+    update_and_upgrade
+
+    # Checks for dependency packages
+    check_and_install_package "git"                # Used in dotfile downloading & upkeep
+    check_and_install_package "sed"                # Used throughout this program
+    check_and_install_package "openssh-server"     # Used to setup remote secured terminal access
+
+    auto_remove
+
+    setup_user_ssh
+    setup_ssh
+    setup_ufw
+    setup_fail2ban
+    setup_tailscale
+
+    mark_success
+
+    info "If this is a pihole installation, please run the following command: \`sudo ufw allow http && sudo ufw allow dns && sudo ufw enable\`"
+    success "Server setup: Complete"    
+}
+
+function check_and_install_package () {
+    info "Checking for $1"
+    if dpkg -s "$1" > /dev/null 2>&1 ; then
+        success "$1 is already installed"
+    else
+        info "$1 not found, installing now"
+        if sudo apt install "$1" -y > /dev/null ; then
+            success "$1 successfully installed"
+        else
+            fail "$1 failed to install"
+        fi
+    fi
+}
+
+function update_and_upgrade() {
+    # Updates & upgrades
+    info "Updating packages"
+    if sudo apt update -y > /dev/null ; then
+        success "Packages were updated"
+    else
+        fail "Packages were unable to be updated"
+    fi
+
+    info "Upgrading packages"
+    if sudo apt upgrade -y > /dev/null ; then
+        success "Packages were upgraded"
+    else
+        fail "Packages were unable to be upgraded"
+    fi
+
+    info "Upgrading packages"
+    if sudo apt dist-upgrade -y > /dev/null ; then
+        success "Packages were upgraded"
+    else
+        fail "Packages were unable to be upgraded"
+    fi
+}
+
+function auto_remove() {
+    # Auto removes any unnecessary packages
+    info "Auto removing any unnecessary packages"
+    if sudo apt autoremove -y > /dev/null ; then
+        success "All unnecessary packages removed"
+    else
+        fail "Unable to remove unnecessary packages"
+    fi
+}
+
+function setup_user_ssh() {
+    # Checks that the baseline directory is good
+    if [[ -d /home/${username}/.ssh ]]; then
+        success "User SSH: SSH directory already created"
+    else
+        if sudo -u "${username}" mkdir /home/${username}/.ssh && sudo chmod 700 /home/${username}/.ssh; then
+            success "User SSH: SSH directory is now created with the correct permissions"
+        else
+            fail "User SSH: SSH directory failed to be created with the correct permissions"
+        fi
+    fi
+
+    # Checks the actual SSH authorized key setup itself
+    if [[ -f /home/${username}/.ssh/authorized_keys && $(sudo cat /home/${username}/.ssh/authorized_keys | grep "${ssh_public_key}") == "" ]]; then
+        success "User SSH: Authorized key file for user is already created"
+    else
+        if echo "${ssh_public_key}" | sudo tee --append /home/${username}/.ssh/authorized_keys; then
+            success "User SSH: Authorized key file for user is now created"
+        else
+            fail "User SSH: Authorized key file for user failed to be created"
+        fi
+    fi
+
+    # Adds in the correct permissions for the newly created authorized key file
+    if sudo chown "${username}:${username}" /home/${username}/.ssh/authorized_keys; then
+        success "User SSH: Successfully set the permissions for the authorized key file"
+    else
+        fail "User SSH: Failed to set the correct permissions for the authorized key file"
+    fi
+}
+
+function setup_ssh() {
+    # Secures SSH daemon
+    # Makes a backup
+    if [[ ! -d "/etc/ssh/sshd_config.backup" ]]; then
+        info "SSHD: Creating a backup of /etc/ssh/sshd_config"
+        sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
+    fi
+
+    # Sets it to a non-standard port
+    change_substring "#Port 22" "Port 30000" /etc/ssh/sshd_config
+    change_substring "Port 22" "Port 30000" /etc/ssh/sshd_config
+    success "SSHD: SSH Port is set to 30000"
+
+    # Disallows root access
+    change_substring "#PermitRootLogin yes" "PermitRootLogin no" /etc/ssh/sshd_config
+    change_substring "PermitRootLogin yes" "PermitRootLogin no" /etc/ssh/sshd_config
+    success "SSHD: SSH root login is denied"
+
+    # Disallows tunneled plaintext passwords
+    change_substring "#PasswordAuthentication yes" "PasswordAuthentication no" /etc/ssh/sshd_config
+    change_substring "PasswordAuthentication yes" "PasswordAuthentication no" /etc/ssh/sshd_config
+    success "SSHD: SSH tunneled plaintext passwords disabled"
+
+    # Allows ssh access for the user
+    if [[ ! $(grep "AllowUsers $username" "/etc/ssh/sshd_config") ]]; then
+        if [[ $(grep "AllowUsers" "/etc/ssh/sshd_config") == "" ]]; then
+            echo "" | sudo tee --append /etc/ssh/sshd_config > /dev/null # Appends a newline first in case original file isn't newline-terminated
+            echo "AllowUsers $username" | sudo tee --append /etc/ssh/sshd_config > /dev/null
+        else
+            change_substring "AllowUsers" "AllowUsers $username" /etc/ssh/sshd_config
+        fi
+        success "SSHD: $username has been added to the SSH access list"
+    else
+        success "SSHD: $username has already been added to the SSH access list"
+    fi
+
+    # Restarts ssh daemon
+    sudo systemctl enable ssh
+    sudo systemctl restart ssh
+}
+
+function setup_ufw() {
+    # Sets up ufw (firewall)
+    check_and_install_package ufw
+
+    # Alters the SSH default port that the ufw application uses
+    change_substring "ports=22" "ports=30000" /etc/ufw/applications.d/openssh-server
+
+    # Checks if it's the first run
+    if sudo ufw status &> /dev/null ; then
+        success "UFW: Successfully initialized the firewall"
+    else
+        warn "UFW: Failed to initialize the firewall (if it's the first time no worries. Rebooting in 5 seconds)"
+        sleep 5
+        sudo reboot now
+    fi
+
+    # Checks to make sure that the ssh port is setup
+    if [[ $(sudo ufw show added | grep "ufw limit OpenSSH") == "" ]]; then
+        if sudo ufw limit OpenSSH > /dev/null; then
+            success "UFW: SSH port has been rate-limited"
+        else
+            fail "UFW: SSH port could not be rate-limited"
+        fi
+    fi
+
+    # Checks that it's online and functioning
+    if [[ $(sudo ufw status | grep "inactive") != "" ]]; then
+        echo "y" | sudo ufw enable > /dev/null
+
+        if [[ $(sudo ufw status | grep "inactive") == "" ]]; then
+            success "UFW: Firewall is now active"
+        else
+            fail "UFW: Unable to activate firewall"
+        fi
+    else
+        success "UFW: Firewall is already enabled"
+    fi
+
+    # Checks for sane defaults
+    if [[ $(sudo ufw status verbose | grep "deny (incoming)") == "" ]]; then
+        if sudo ufw default deny incoming > /dev/null ; then
+            success "UFW: Default has been set, all incoming traffic is being denied"
+        else
+            fail "UFW: Default could not be set, all incoming traffic is allowed"
+        fi
+    else
+        success "UFW: Default is already set to deny all incoming traffic"
+    fi
+
+    if [[ $(sudo ufw status verbose | grep "allow (outgoing)") == "" ]]; then
+        if sudo ufw default allow outgoing > /dev/null ; then
+            success "UFW: Default has been set, all outgoing traffic is allowed"
+        else
+            fail "UFW: Default could not be set, all outgoing traffic is being denied"
+        fi
+    else
+        success "UFW: Default is already set to allow all outgoing traffic"
+    fi
+}
+
+function setup_fail2ban() {
+    check_and_install_package fail2ban                # Used in ip-banning on both nginx and ufw
+
+    # Creates a local jail to use ufw
+    if [ ! -f "/etc/fail2ban/jail.local" ]; then
+        info "Fail2Ban: Creating local jail"
+        {
+            echo "[DEFAULT]"
+            echo "ignoreip = 127.0.0.1/8"
+            echo "banaction = ufw"
+            echo "maxRetry = 5"
+            echo "findtime = 600"
+            echo "bantime = 7200"
+        } | sudo tee /etc/fail2ban/jail.local > /dev/null
+        success "Fail2Ban: Local jail created"
+    else
+        success "Fail2Ban: Local jail already created"
+    fi
+
+    sudo service fail2ban restart
+}
+
+function setup_tailscale() {
+  # From https://tailscale.com/download/linux/ubuntu-2204
+  curl -fsSL https://tailscale.com/install.sh | sh
+}
+
+function sanity_check() {
+    if [[ -f /.server_setup ]]; then
+        success "Early Exit: Server is already setup, no need to run setup script"
+        exit 0
+    else
+        info "Setup: Server has not been provisioned before, setting up now"
+    fi
+}
+
+function mark_success() {
+    if [[ -f /.server_setup ]]; then
+        success "Mark: Server is already setup"
+    else
+        if sudo touch /.server_setup ; then
+            success "Mark: Successfully marked the server as fully functional"
+        else
+            fail "Mark: Failed to mark the server as fully functional"
+        fi
+    fi
+}
+
+####
+# Helper functions
+####
+function change_substring () {
+    search=$1
+    replace=$2
+    file=$3
+    sudo sed -i "s/${search}/${replace}/g" "${file}"
+}
+
+function info () {
+    printf "\r  [ \033[00;34m..\033[0m ] %s\n" "$1"
+}
+function user () {
+    printf "\r  [ \033[0;33m??\033[0m ] %s " "$1"
+}
+function success () {
+    printf "\r\033[2K  [ \033[00;32mOK\033[0m ] %s\n" "$1"
+}
+function warn () {
+    printf "\r\033[2K  [\033[0;31mWARN\033[0m] %s\n" "$1"
+}
+function fail () {
+    printf "\r\033[2K  [\033[0;31mFAIL\033[0m] %s\n" "$1"
+    echo ''
+    exit 1
+}
+
+setup_server
